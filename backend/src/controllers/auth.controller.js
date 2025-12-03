@@ -6,6 +6,11 @@ import User from "../models/User.js";
 import bcrypt from "bcrypt";
 
 export const signup = async (req, res) => {
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({
+      message: "Request body is missing. Please send email and password.",
+    });
+  }
   const { fullName, email, password } = req.body;
 
   try {
@@ -64,6 +69,11 @@ export const signup = async (req, res) => {
 };
 
 export const login = async (req, res) => {
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({
+      message: "Request body is missing. Please send email and password.",
+    });
+  }
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -126,6 +136,5 @@ export const updateProfile = async (req, res) => {
   } catch (error) {
     console.error("Error in update profile", error);
     res.status(500).json({ message: "Internal server error" });
-
   }
 };
