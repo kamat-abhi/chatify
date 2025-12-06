@@ -7,6 +7,7 @@ export const useAuthStore = create((set) => ({
   isCheckingAuth: true,
   isSignup: false,
   isLogin: false,
+  isUploading: false,
 
   checkAuth: async () => {
     try {
@@ -27,20 +28,18 @@ export const useAuthStore = create((set) => ({
       set({ authUser: res.data });
       toast.success("Account created successfully!");
     } catch (error) {
-      
       // Backend offline or timeout
       if (!error.response) {
         toast.error("Backend is offline!");
-      } 
+      }
       // Axios timeout
       else if (error.code === "ECONNABORTED") {
         toast.error("Request timed out.");
-      } 
+      }
       // Backend sent message
       else {
         toast.error(error.response.data.message || "Signup failed.");
       }
-
     } finally {
       set({ isSignup: false });
     }
@@ -53,18 +52,43 @@ export const useAuthStore = create((set) => ({
       set({ authUser: res.data });
       toast.success("Logged in successfully!");
     } catch (error) {
-
       if (!error.response) {
+        toast.dismiss
         toast.error("Backend is offline!");
       } else if (error.code === "ECONNABORTED") {
+        toast.dismiss()
         toast.error("Request timed out.");
       } else {
+        toast.dismiss()
         toast.error(error.response.data.message || "Login failed.");
       }
-
     } finally {
       set({ isLogin: false });
     }
   },
 
+  logout: async () => {
+    try {
+      await axiosInstance.post("/auth/logout");
+      set({ authUser: null });
+      toast.success("Logged out successfully");
+    } catch (error) {
+      toast.error("Error logging out");
+      console.log("Logout error", error);
+    }
+  },
+
+  updateProfile: async (data) => {
+    set({isUploading: true})
+    try {
+      const res = await axiosInstance.put("/auth/update-profile", data);
+      set({ authUser: res.data });
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.log("Error in update profile:", error);
+      toast.error(error.response.data.message);
+    } finally {
+      set({isUploading: false})
+    }
+  },
 }));

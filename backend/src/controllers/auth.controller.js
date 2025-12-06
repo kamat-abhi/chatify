@@ -116,6 +116,11 @@ export const logout = async (_, res) => {
 };
 
 export const updateProfile = async (req, res) => {
+   if (!req.body) {
+    return res.status(400).json({
+      message: "I think you not send the image what bro first send image as BASE64",
+    });
+  }
   try {
     const { profilePic } = req.body;
     if (!profilePic) {
@@ -136,5 +141,32 @@ export const updateProfile = async (req, res) => {
   } catch (error) {
     console.error("Error in update profile", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const allUsers = await User.find({}, " _id fullName email");
+    res.status(200).json(allUsers);
+  } catch (error) {
+    console.error("Error in update profile", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  const userId = req.params.id;
+  if (!userId) {
+    return res.status(400).json({ message: "ID not provided" });
+  }
+  try {
+    const deleteUser = await User.findByIdAndDelete(userId);
+
+    if (!deleteUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({message: "User deleted successfully"});
+  } catch (error) {
+    res.status(500).json({ message: "Error in deleting User" });
   }
 };
