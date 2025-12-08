@@ -17,21 +17,12 @@ const allowedOrigins = [
   "https://frontend.netlify.app"     // production
 ];
 
-// CORS middleware
 app.use(cors({
-  origin: (origin, callback) => {
-    // allow requests with no origin (Postman / server)
-    if (!origin) return callback(null, true);
-
-    // allow requests from allowed origins
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-
-    // block everything else
-    console.warn(`CORS blocked: ${origin}`);
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true, // allow cookies/JWT
-}));
+  origin: "http://localhost:5173",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authrization"],
+}))
 
 // Rate limiter
 const limiter = rateLimit({
