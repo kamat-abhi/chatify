@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
+import { useChatStore } from "./useChatStore.js";
 
 function handleAxiosError(error, fallbackMessage) {
   if (error.code === "ECONNABORTED") {
@@ -70,6 +71,7 @@ export const useAuthStore = create((set) => ({
     try {
       await axiosInstance.post("/auth/logout");
       set({ authUser: null });
+      useChatStore.setState({ selectedUser: null });
       toast.success("Logged out successfully");
     } catch (error) {
       toast.error("Error logging out");

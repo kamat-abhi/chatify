@@ -26,7 +26,7 @@ export const getMessagesByUserId = async (req, res) => {
         { senderId: myId, receiverId: userTochatId },
         { senderId: userTochatId, receiverId: myId },
       ],
-    });
+    }).sort({ createdAt: 1});
 
     res.status(200).json(message);
   } catch (error) {

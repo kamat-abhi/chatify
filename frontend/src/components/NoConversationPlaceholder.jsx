@@ -10,7 +10,7 @@ const NoConversationPlaceholder = () => {
         Select a conversation
       </h3>
       <p className="text-slate-400 max-w-md">
-        Choose a content from the <b>sidebar</b> to start to chatting or
+        Choose a contact from the <b>sidebar</b> to start chatting or
         continue a previous conversation.
       </p>
     </div>
