@@ -10,11 +10,23 @@ export const useAuthStore = create((set) => ({
   isUploading: false,
 
   checkAuth: async () => {
+    if (!navigator.onLine) {
+      toast.error("No Internet Connection! Please check your network.");
+      set({ authUser: null, isCheckingAuth: false });
+      return;
+    }
+
     try {
       const res = await axiosInstance.get("/auth/check");
       set({ authUser: res.data });
     } catch (error) {
-      console.log("Error in authCheck", error);
+      // If Axios throws due to DNS or ENOTFOUND
+      if (error.code === "ERR_NETWORK") {
+        toast.error("Cannot reach server. Check your internet connection.");
+      } else {
+        toast.error("User not found!");
+      }
+      console.log("Error in authCheck:", error);
       set({ authUser: null });
     } finally {
       set({ isCheckingAuth: false });
@@ -53,13 +65,13 @@ export const useAuthStore = create((set) => ({
       toast.success("Logged in successfully!");
     } catch (error) {
       if (!error.response) {
-        toast.dismiss
+        toast.dismiss;
         toast.error("Backend is offline!");
       } else if (error.code === "ECONNABORTED") {
-        toast.dismiss()
+        toast.dismiss();
         toast.error("Request timed out.");
       } else {
-        toast.dismiss()
+        toast.dismiss();
         toast.error(error.response.data.message || "Login failed.");
       }
     } finally {
@@ -79,7 +91,7 @@ export const useAuthStore = create((set) => ({
   },
 
   updateProfile: async (data) => {
-    set({isUploading: true})
+    set({ isUploading: true });
     try {
       const res = await axiosInstance.put("/auth/update-profile", data);
       set({ authUser: res.data });
@@ -88,7 +100,7 @@ export const useAuthStore = create((set) => ({
       console.log("Error in update profile:", error);
       toast.error(error.response.data.message);
     } finally {
-      set({isUploading: false})
+      set({ isUploading: false });
     }
   },
 }));
