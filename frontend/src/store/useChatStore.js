@@ -64,8 +64,8 @@ export const useChatStore = create((set, get) => ({
   },
 
   sendMessage: async (messageData) => {
-    const {selectedUser, messages} = get();
-    const {authUser} = useAuthStore.getState();
+    const { selectedUser, messages } = get();
+    const { authUser } = useAuthStore.getState();
 
     const tempId = `temp-${Date.now()}`;
 
@@ -78,13 +78,47 @@ export const useChatStore = create((set, get) => ({
       createdAt: new Date().toISOString(),
       isOptimistic: true,
     };
-    set({messages: [...messages, optimisticMessage]})
+    set({ messages: [...messages, optimisticMessage] });
     try {
-      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({messages: messages.concat(res.data)})
+      const res = await axiosInstance.post(
+        `/messages/send/${selectedUser._id}`,
+        messageData
+      );
+      set({ messages: messages.concat(res.data) });
     } catch (error) {
-      set({messages: messages});
+      set({ messages: messages });
       toast.error(error.response.data.message || "Something went worng");
     }
+  },
+
+  subscribeToMessages: async () => {
+    const { selectedUser, isSoundEnabled } = get();
+    if (!selectedUser) return;
+
+    const socket = useAuthStore.getState().socket;
+
+    socket.off("newMessage");
+
+    socket.on("newMessage", (newMessage) => {
+      const isMessageSentFromSelecteduser =
+        newMessage.senderId === selectedUser._id;
+      if (!isMessageSentFromSelecteduser) return;
+      const currentMessages = get().messages;
+      set({ messages: [...currentMessages, newMessage] });
+
+      if (isSoundEnabled) {
+        const notificationSound = new Audio("/sounds/notification.mp3");
+
+        notificationSound.currentTime = 0;
+        notificationSound
+          .play()
+          .catch((e) => console.log("Audio play failed:", e));
+      }
+    });
+  },
+
+  unsubscribeFromMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    socket.off("newMessage");
   },
 }));
