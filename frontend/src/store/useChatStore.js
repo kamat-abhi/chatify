@@ -3,6 +3,10 @@ import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
 
+const notificationSound = new Audio("/sounds/notification.mp3");
+const sendSound = new Audio("/sounds/sendSound.mp3");
+const chatSound = new Audio("/sounds/chat2.mp3");
+
 export const useChatStore = create((set, get) => ({
   allContacts: [],
   chats: [],
@@ -79,6 +83,8 @@ export const useChatStore = create((set, get) => ({
       isOptimistic: true,
     };
     set({ messages: [...messages, optimisticMessage] });
+    sendSound.currentTime = 0;
+    sendSound.play().catch((e) => console.log("Audio play failed:", e));
     try {
       const res = await axiosInstance.post(
         `/messages/send/${selectedUser._id}`,
@@ -92,7 +98,7 @@ export const useChatStore = create((set, get) => ({
   },
 
   subscribeToMessages: async () => {
-    const { selectedUser, isSoundEnabled } = get();
+    const { selectedUser } = get();
     if (!selectedUser) return;
 
     const socket = useAuthStore.getState().socket;
@@ -100,19 +106,26 @@ export const useChatStore = create((set, get) => ({
     socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
+      const { isSoundEnabled } = get();
+
       const isMessageSentFromSelecteduser =
         newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelecteduser) return;
+      if (!isMessageSentFromSelecteduser) {
+        if (isSoundEnabled) {
+          notificationSound.currentTime = 0;
+          notificationSound
+            .play()
+            .catch((e) => console.log("Audio play failed:", e));
+        }
+        return;
+      }
+
       const currentMessages = get().messages;
       set({ messages: [...currentMessages, newMessage] });
 
       if (isSoundEnabled) {
-        const notificationSound = new Audio("/sounds/notification.mp3");
-
-        notificationSound.currentTime = 0;
-        notificationSound
-          .play()
-          .catch((e) => console.log("Audio play failed:", e));
+        chatSound.currentTime = 0;
+        chatSound.play().catch((e) => console.log("Audio play failed:", e));
       }
     });
   },
