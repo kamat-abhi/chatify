@@ -7,8 +7,8 @@ import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import connectDB from "./config/db.js";
 import { ENV } from "./lib/env.js";
+import { app, server } from "./lib/socket.js";
 
-const app = express();
 const PORT = ENV.PORT || 3000;
 
 // Allowed frontends
@@ -46,7 +46,7 @@ app.use("/api/messages", messageRoutes);
 // Start server after DB connection
 connectDB()
   .then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on PORT: ${PORT}`);
     });
   })
