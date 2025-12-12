@@ -1,8 +1,8 @@
 const keyStrokeSounds = [
-  new Audio("/sounds/keystorke1.mp3"),
-  new Audio("/sounds/keystorke2.mp3"),
-  new Audio("/sounds/keystorke3.mp3"),
-  new Audio("/sounds/keystorke4.mp3"),
+  new Audio("/sounds/keystroke1.mp3"),
+  new Audio("/sounds/keystroke2.mp3"),
+  new Audio("/sounds/keystroke3.mp3"),
+  new Audio("/sounds/keystroke4.mp3"),
 ];
 
 const useKeyboardSound = () => {
