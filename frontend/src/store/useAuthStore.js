@@ -30,12 +30,6 @@ export const useAuthStore = create((set, get) => ({
   checkAuth: async () => {
     set({ isCheckingAuth: true });
 
-    if (!navigator.onLine) {
-      toast.error("No Internet Connection! Please check your network.");
-      set({ isCheckingAuth: false });
-      return;
-    }
-
     try {
       const res = await axiosInstance.get("/auth/check");
       set({ authUser: res.data });

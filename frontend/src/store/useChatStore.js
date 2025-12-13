@@ -3,9 +3,17 @@ import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
 
-const notificationSound = new Audio("/sounds/notification.mp3");
-const sendSound = new Audio("/sounds/sendSound.mp3");
-const chatSound = new Audio("/sounds/chat2.mp3");
+//Helper to play sound safely (avoids SSR crashes)
+const playSound = (type) => {
+  if (typeof window === "undefined") return;
+  const sounds = {
+    notification: "/sounds/notification.mp3",
+    send: "/sounds/sendSound.mp3",
+    chat: "/sounds/chat2.mp3",
+  };
+  const audio = new Audio(sounds[type]);
+  audio.play().catch((e) => console.warn("Audio play failed:", e));
+};
 
 export const useChatStore = create((set, get) => ({
   allContacts: [],
@@ -15,11 +23,12 @@ export const useChatStore = create((set, get) => ({
   selectedUser: null,
   isUserLoading: false,
   isMessagesLoading: false,
-  isSoundEnabled: localStorage.getItem("isSoundEnabled") === "true",
+  //Parse explicitly to avoid string comparison errors later
+  isSoundEnabled: JSON.parse(localStorage.getItem("isSoundEnabled") ?? "true"),
 
   toggleSound: () => {
     const newVal = !get().isSoundEnabled;
-    localStorage.setItem("isSoundEnabled", String(newVal));
+    localStorage.setItem("isSoundEnabled", JSON.stringify(newVal));
     set({ isSoundEnabled: newVal });
   },
 
@@ -32,8 +41,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/contacts");
       set({ allContacts: res.data });
     } catch (error) {
-      const msg = error?.response?.data?.message || "Failed to fetch contacts";
-      toast.error(msg);
+      toast.error(error.response?.data?.message || "Failed to fetch contacts");
     } finally {
       set({ isUserLoading: false });
     }
@@ -45,8 +53,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/chats");
       set({ chats: res.data });
     } catch (error) {
-      const msg = error?.response?.data?.message || "Failed to fetch chats";
-      toast.error(msg);
+      toast.error(error.response?.data?.message || "Failed to fetch chats");
     } finally {
       set({ isUserLoading: false });
     }
@@ -57,22 +64,20 @@ export const useChatStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
-      return res.data;
     } catch (error) {
-      const msg = error?.response?.data?.message || "Failed to fetch messages";
-      toast.error(msg);
-      return null;
+      toast.error(error.response?.data?.message || "Failed to fetch messages");
     } finally {
       set({ isMessagesLoading: false });
     }
   },
 
   sendMessage: async (messageData) => {
-    const { selectedUser, messages } = get();
+    const { selectedUser, messages, isSoundEnabled } = get();
     const { authUser } = useAuthStore.getState();
 
-    const tempId = `temp-${Date.now()}`;
+    if (!selectedUser || !authUser) return;
 
+    const tempId = `temp-${Date.now()}`;
     const optimisticMessage = {
       _id: tempId,
       senderId: authUser._id,
@@ -80,56 +85,90 @@ export const useChatStore = create((set, get) => ({
       text: messageData.text,
       image: messageData.image,
       createdAt: new Date().toISOString(),
-      isOptimistic: true,
+      isOptimistic: true, //Useful for UI styling (e.g. fading opacity)
     };
+
+    // 1. Optimistic Update
     set({ messages: [...messages, optimisticMessage] });
-    sendSound.currentTime = 0;
-    sendSound.play().catch((e) => console.log("Audio play failed:", e));
+    if (isSoundEnabled) playSound("send");
+
     try {
       const res = await axiosInstance.post(
         `/messages/send/${selectedUser._id}`,
         messageData
       );
-      set({ messages: messages.concat(res.data) });
+
+      // 2. Success: Replace temp message with real one
+      set((state) => ({
+        messages: state.messages.map((msg) =>
+          msg._id === tempId ? res.data : msg
+        ),
+      }));
     } catch (error) {
-      set({ messages: messages });
-      toast.error(error.response.data.message || "Something went worng");
+      // 3. Failure: Rollback (remove the temp message)
+      set((state) => ({
+        messages: state.messages.filter((msg) => msg._id !== tempId),
+      }));
+      toast.error(error.response?.data?.message || "Failed to send message");
     }
   },
 
   subscribeToMessages: async () => {
-    const { selectedUser } = get();
-    if (!selectedUser) return;
-
     const socket = useAuthStore.getState().socket;
+    if (!socket) return;
+
+    socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
-      const { isSoundEnabled } = get();
+      const { isSoundEnabled, selectedUser, chats } = get();
 
-      const isMessageSentFromSelecteduser =
-        newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelecteduser) {
-        if (isSoundEnabled) {
-          notificationSound.currentTime = 0;
-          notificationSound
-            .play()
-            .catch((e) => console.log("Audio play failed:", e));
+      const senderId = newMessage.senderId._id;
+      const isFromSelectedUser = selectedUser?._id === senderId;
+
+      if (isFromSelectedUser) {
+        set((state) => ({
+          messages: [...state.messages, { ...newMessage, senderId: senderId }],
+        }));
+        if (isSoundEnabled) playSound("chat");
+      } else {
+        if (isSoundEnabled) playSound("notification");
+      }
+      set((state) => {
+        const existingChatIndex = state.chats.findIndex(
+          (chat) => chat._id === senderId
+        );
+
+        if (existingChatIndex !== -1) {
+          const updatedChats = [...state.chats];
+          const chatToMove = { ...updatedChats[existingChatIndex] };
+
+          chatToMove.lastMessage = {
+            ...newMessage,
+            senderId: senderId,
+          };
+
+          updatedChats.splice(existingChatIndex, 1);
+          updatedChats.unshift(chatToMove);
+
+          return { chats: updatedChats };
+        } else {
+          const newChatEntry = {
+            _id: senderId,
+            fullName: newMessage.senderId.fullName,
+            profilePic: newMessage.senderId.profilePic,
+            lastMessage: {
+              ...newMessage,
+              senderId: senderId,
+            },
+          };
+          return { chats: [newChatEntry, ...state.chats] };
         }
-        return;
-      }
-
-      const currentMessages = get().messages;
-      set({ messages: [...currentMessages, newMessage] });
-
-      if (isSoundEnabled) {
-        chatSound.currentTime = 0;
-        chatSound.play().catch((e) => console.log("Audio play failed:", e));
-      }
+      });
     });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
+    if(socket) socket.off("newMessage");
   },
 }));

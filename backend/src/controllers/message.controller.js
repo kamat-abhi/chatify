@@ -37,11 +37,6 @@ export const getMessagesByUserId = async (req, res) => {
 };
 
 export const sendMessage = async (req, res) => {
-  if (!req.body || Object.keys(req.body).length === 0) {
-    return res.status(400).json({
-      message: "Request body is missing. Please send message",
-    });
-  }
   try {
     const { text, image } = req.body;
     const { id: receiverId } = req.params;
@@ -76,10 +71,14 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
-    //todo: send message in real time if user is online
+    const populatedMessage = await Message.findById(newMessage._id).populate(
+      "senderId",
+      "fullName profilePic"
+    );
+
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+      io.to(receiverSocketId).emit("newMessage", populatedMessage);
     }
 
     res.status(201).json(newMessage);

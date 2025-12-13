@@ -4,20 +4,29 @@ import ChatPage from "./pages/ChatPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import { useAuthStore } from "./store/useAuthStore.js";
+import { useChatStore } from "./store/useChatStore";
 import PageLoader from "./components/PageLoader.jsx";
 
 import { Toaster } from "react-hot-toast";
 
 const App = () => {
-  const {checkAuth, isCheckingAuth, authUser} = useAuthStore();
+  const { checkAuth, isCheckingAuth, authUser } = useAuthStore();
+  const { subscribeToMessages, unsubscribeFromMessages } = useChatStore();
 
   useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
+    checkAuth();
+  }, [checkAuth]);
 
-  console.log({authUser});
+  useEffect(() => {
+    if (authUser) {
+      subscribeToMessages();
+    }
+    return () => {
+      unsubscribeFromMessages();
+    };
+  }, [authUser, subscribeToMessages, unsubscribeFromMessages]);
 
-  if(isCheckingAuth) return <PageLoader />
+  if (isCheckingAuth) return <PageLoader />;
   return (
     <div className="min-h-screen bg-slate-900 relative flex items-center justify-center p-4 overflow-hidden">
       {/* DECORATORS - GRID BG & GLOW SHAPES */}
@@ -26,9 +35,18 @@ const App = () => {
       <div className="absolute bottom-0 -right-4 size-96 bg-cyan-500 opacity-20 blur-[100px]" />
 
       <Routes>
-        <Route path="/" element={authUser ? <ChatPage /> : <Navigate to={"/login"} />} />
-        <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to={"/"} />} />
-        <Route path="/signup" element={!authUser ? <SignUpPage /> : <Navigate to={"/"} />} />
+        <Route
+          path="/"
+          element={authUser ? <ChatPage /> : <Navigate to={"/login"} />}
+        />
+        <Route
+          path="/login"
+          element={!authUser ? <LoginPage /> : <Navigate to={"/"} />}
+        />
+        <Route
+          path="/signup"
+          element={!authUser ? <SignUpPage /> : <Navigate to={"/"} />}
+        />
       </Routes>
 
       <Toaster />
