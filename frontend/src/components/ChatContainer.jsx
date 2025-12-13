@@ -50,7 +50,7 @@ const ChatContainer = () => {
                 }`}
               >
                 <div
-                  className={`chat-bubble relative ${
+                  className={`chat-bubble relative w-fit max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] break-all whitespace-pre-wrap ${
                     msg.senderId === authUser._id
                       ? "bg-cyan-600 text-white"
                       : "bg-slate-800 text-slate-200"
