@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import {BorderAnimatedContainer} from "../components";
+import { BorderAnimatedContainer } from "../components";
 import { Link } from "react-router";
 import {
+  Eye,
+  EyeOff,
   LoaderIcon,
   LockIcon,
   MailIcon,
@@ -11,6 +13,8 @@ import {
 } from "lucide-react";
 
 const SignUpPage = () => {
+  const [showPassword, setShowPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -85,7 +89,7 @@ const SignUpPage = () => {
                       <LockIcon className="auth-input-icon" />
 
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={formData.password}
                         onChange={(e) =>
                           setFormData({ ...formData, password: e.target.value })
@@ -93,6 +97,18 @@ const SignUpPage = () => {
                         className="input"
                         placeholder="Enter your password"
                       />
+                      {/* Eye icon */}
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      >
+                        {showPassword ? (
+                          <Eye size={20} />
+                        ) : (
+                          <EyeOff size={20} />
+                        )}
+                      </button>
                     </div>
                   </div>
 

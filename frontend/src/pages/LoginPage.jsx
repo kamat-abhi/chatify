@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import {BorderAnimatedContainer} from "../components";
+import { BorderAnimatedContainer } from "../components";
 import { Link } from "react-router";
 import {
+  Eye,
+  EyeOff,
   LoaderIcon,
   LockIcon,
   MailIcon,
@@ -10,6 +12,8 @@ import {
 } from "lucide-react";
 
 function LoginPage() {
+  const [showPassword, setShowPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -66,7 +70,7 @@ function LoginPage() {
                       <LockIcon className="auth-input-icon" />
 
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={formData.password}
                         onChange={(e) =>
                           setFormData({ ...formData, password: e.target.value })
@@ -74,15 +78,22 @@ function LoginPage() {
                         className="input"
                         placeholder="Enter your password"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      >
+                        {showPassword ? (
+                          <Eye size={20} />
+                        ) : (
+                          <EyeOff size={20} />
+                        )}
+                      </button>
                     </div>
                   </div>
 
                   {/* Submit button */}
-                  <button
-                    className="auth-btn"
-                    type="submit"
-                    disabled={isLogin}
-                  >
+                  <button className="auth-btn" type="submit" disabled={isLogin}>
                     {isLogin ? (
                       <LoaderIcon className="w-full h-5 animate-spin text-center" />
                     ) : (
