@@ -4,8 +4,21 @@ import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
 
 //Helper to play sound safely (avoids SSR crashes)
+let audioUnlocked = false;
+if(typeof window !== "undefined"){
+  const unlock = () => {
+    audioUnlocked = true;
+    window.removeEventListener("click", unlock);
+    window.removeEventListener("keydown", unlock);
+  };
+
+  window.addEventListener("click", unlock, {once: true});
+  window.addEventListener("keydown", unlock, {once: true});
+};
+
 const playSound = (type) => {
   if (typeof window === "undefined") return;
+  if(!audioUnlocked) return;
   const sounds = {
     notification: "/sounds/notification.mp3",
     send: "/sounds/sendSound.mp3",
@@ -120,7 +133,12 @@ export const useChatStore = create((set, get) => ({
     socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
-      const { isSoundEnabled, selectedUser, chats } = get();
+      const { isSoundEnabled, selectedUser } = get();
+
+      const isMessageAlreadyReceived = get().messages.some(
+        (msg) => msg._id === newMessage._id
+      );
+      if(isMessageAlreadyReceived) return;
 
       const senderId = newMessage.senderId._id;
       const isFromSelectedUser = selectedUser?._id === senderId;
