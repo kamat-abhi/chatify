@@ -13,18 +13,16 @@ const PORT = ENV.PORT || 3000;
 
 // Allowed frontends
 const allowedOrigins = [
-  "http://localhost:5173",            // development
-  "https://frontend.netlify.app"     // production
+  "http://localhost:5173",
+  "https://chatify-silk-mu.vercel.app"
 ];
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: allowedOrigins,
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authrization"],
 }))
 
-// Rate limiter
+
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 100,
