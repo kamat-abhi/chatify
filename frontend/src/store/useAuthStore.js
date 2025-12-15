@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useChatStore } from "./useChatStore.js";
 import {io} from "socket.io-client";
 
-const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:3000" : "/";
+const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:3000" : "https://chatify-asjd.onrender.com";
 
 
 function handleAxiosError(error, fallbackMessage) {
