@@ -3,21 +3,21 @@ import sendEmail from "../lib/emailHandlers.js";
 import { ENV } from "../lib/env.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
+import Chat from "../models/Chat.js";
 import bcrypt from "bcrypt";
 
 export const signup = async (req, res) => {
-  if (!req.body || Object.keys(req.body).length === 0) {
-    return res.status(400).json({
-      message: "Request body is missing. Please send email and password.",
-    });
-  }
   const { fullName, email, password } = req.body;
 
-  try {
-    if (!fullName || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
+  if (!fullName || !email || !password) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
 
+  try {
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
     if (password.length < 8) {
       return res
         .status(400)
@@ -27,11 +27,6 @@ export const signup = async (req, res) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
-    }
-
-    const user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: "Email already exists" });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -63,17 +58,11 @@ export const signup = async (req, res) => {
       res.status(400).json({ message: "Invalid user data" });
     }
   } catch (error) {
-    console.log("Error in singup controller", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Signup failed" });
   }
 };
 
 export const login = async (req, res) => {
-  if (!req.body || Object.keys(req.body).length === 0) {
-    return res.status(400).json({
-      message: "Request body is missing. Please send email and password.",
-    });
-  }
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -91,6 +80,9 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credential" });
     }
 
+    user.lastSeenAt = new Date();
+    await user.save();
+
     generateToken(user._id, res);
 
     return res.status(200).json({
@@ -100,33 +92,32 @@ export const login = async (req, res) => {
       profilePic: user.profilePic,
     });
   } catch (error) {
-    console.error("Error in login controller", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Login failed" });
   }
 };
 
 export const logout = async (_, res) => {
-  res.clearCookie("jwt", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-  });
+  try {
+    const userId = req.user._id;
+    await User.findByIdAndUpdate(userId, { lastSeenAt: new Date() });
+    res.clearCookie("jwt", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
 
-  res.status(200).json({ message: "Logout successfully" });
+    res.status(200).json({ message: "Logout successfully" });
+  } catch (error) {}
+  console.error("Error in logout", error);
+  res.status(500).json({ message: "Internal server error" });
 };
 
 export const updateProfile = async (req, res) => {
-   if (!req.body) {
-    return res.status(400).json({
-      message: "I think you not send the image what bro first send image as BASE64",
-    });
+  const { profilePic } = req.body;
+  if (!profilePic) {
+    return res.status(400).json({ message: "Profile pic is required " });
   }
   try {
-    const { profilePic } = req.body;
-    if (!profilePic) {
-      return res.status(400).json({ message: "Profile pic is required " });
-    }
-
     const userId = req.user._id;
 
     const uploadResponse = await cloudinary.uploader.upload(profilePic);
@@ -140,14 +131,17 @@ export const updateProfile = async (req, res) => {
     res.status(200).json(updatedUser);
   } catch (error) {
     console.error("Error in update profile", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Update profile failed" });
   }
 };
 
 export const getAllUsers = async (req, res) => {
   try {
-    const allUsers = await User.find({}, " _id fullName email");
-    res.status(200).json(allUsers);
+    const users = await User.find(
+      { _id: { $ne: req.user._id } },
+      "_id fullName profilePic lastSeenAt"
+    );
+    res.status(200).json(users);
   } catch (error) {
     console.error("Error in update profile", error);
     res.status(500).json({ message: "Internal server error" });
@@ -165,7 +159,7 @@ export const deleteUser = async (req, res) => {
     if (!deleteUser) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.status(200).json({message: "User deleted successfully"});
+    res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error in deleting User" });
   }
