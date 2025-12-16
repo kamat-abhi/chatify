@@ -17,11 +17,15 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
+      select: false,
     },
     profilePic: {
       type: String,
       default: "",
     },
+    lastSeenAt: {
+      type: Date,
+    }
   },
   { timestamps: true }
 );
