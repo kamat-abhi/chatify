@@ -3,7 +3,6 @@ import sendEmail from "../lib/emailHandlers.js";
 import { ENV } from "../lib/env.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
-import Chat from "../models/Chat.js";
 import bcrypt from "bcrypt";
 
 export const signup = async (req, res) => {
@@ -70,9 +69,9 @@ export const login = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      return res.status(400).json({ message: "Invalid credential" });
+      return res.status(400).json({ message: "User not found" });
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -92,6 +91,7 @@ export const login = async (req, res) => {
       profilePic: user.profilePic,
     });
   } catch (error) {
+    console.error("Error in login", error);
     res.status(500).json({ message: "Login failed" });
   }
 };

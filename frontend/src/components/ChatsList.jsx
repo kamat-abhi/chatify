@@ -6,7 +6,7 @@ import { useAuthStore } from "../store/useAuthStore";
 
 const ChatsList = () => {
   const { getMyChatPartners, chats, isUserLoading, setSelectedUser } = useChatStore();
-  const {onLineUsers } = useAuthStore();
+  const {onLineUsers, } = useAuthStore();
 
   useEffect(() => {
     getMyChatPartners();
@@ -20,7 +20,9 @@ const ChatsList = () => {
         <div
           key={chat._id}
           className="bg-cyan-500/5 p-3 rounded-lg cursor-pointer hover:bg-cyan-500/20 transition-colors"
-          onClick={() => setSelectedUser(chat)}
+          onClick={() => 
+            setSelectedUser(chat)
+          }
         >
           <div className="flex items-center gap-3">
             <div className={`avatar ${onLineUsers.includes(chat._id) ? "online" : "offline"}`}>

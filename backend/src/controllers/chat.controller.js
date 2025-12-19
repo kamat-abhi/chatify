@@ -60,6 +60,29 @@ export const markConversationAsRead = async (req, res) => {
     res.status(200).json({ message: "Conversation marked as read" });
   } catch (error) {
     console.error("Error in markConversationRead:", error);
-    res.status(500).json({message: "Internal server error"});
-  };
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteConversation = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const {id: conversationId } = req.params;
+
+    const chat = await Chat.findOne({
+      _id: conversationId,
+      participants: userId,
+    });
+    if(!chat) {
+      return res.status(404).json({ message: "Conversation not found"});
+    }
+
+    await Message.deleteMany({ chatId: conversationId });
+    await chat.deleteOne();
+
+    res.status(200).json({message: "Conversation deleted" });
+  } catch (error) {
+    console.error("Error in deleteConversation:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };

@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
+import conversationRoutes from "./routes/chat.route.js";
 import connectDB from "./config/db.js";
 import { ENV } from "./lib/env.js";
 import { app, server } from "./lib/socket.js";
@@ -40,6 +41,7 @@ app.use(cookieParser());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/conversations", conversationRoutes);
 
 // Start server after DB connection
 connectDB()
